@@ -1,0 +1,31 @@
+- default:
+  permissions:
+    - viewposts
+    - viewboards
+    - viewcomments
+
+- user:
+  permissions:
+    - view_self
+    - view_public
+    - update_self
+    - delete_self
+    - create_post
+    - create_comment
+    - delete_self_comment
+    - delete_self_post
+    - vote
+
+- moderator:
+  permissions:
+    - delete_post
+    - delete_comment
+    - sticky
+    - ban
+
+- admin:
+  permissions:
+    - add_board
+    - delete_board
+    - change_role
+    - view_private
