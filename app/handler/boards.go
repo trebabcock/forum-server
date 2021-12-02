@@ -64,7 +64,7 @@ func CreateBoard(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		ID:          id.String(),
 		Name:        newBoard.Name,
 		Description: newBoard.Description,
-		CreateDate:  time.Now(),
+		CreateDate:  time.Now().UTC(),
 	}
 
 	if err := db.Save(&board).Error; err != nil {
@@ -143,6 +143,43 @@ func DeleteBoard(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	RespondJSON(w, http.StatusNoContent, nil)
+}
+
+func GetLastPostTimeAndAuthor(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["boardId"]
+
+	post, err := getLastPost(db, id)
+	if err != nil {
+		RespondError(w, http.StatusNotFound, "post not found")
+		return
+	}
+
+	user, err := getUserById(db, post.AuthorID)
+	if err != nil {
+		RespondError(w, http.StatusNotFound, "user not found")
+		return
+	}
+
+	count := getPostCount(db, id)
+
+	RespondJSON(w, http.StatusOK, map[string]interface{}{"author": user.Username, "date_time": post.CreateDate, "count": count})
+}
+
+func getLastPost(db *gorm.DB, boardId string) (*model.Post, error) {
+	post := model.Post{}
+	if err := db.Where(&model.Post{BoardID: boardId}).Order("create_date desc").First(&post).Error; err != nil {
+		return nil, err
+	}
+	return &post, nil
+}
+
+func getPostCount(db *gorm.DB, boardId string) int64 {
+	var count int64
+	if err := db.Model(&model.Post{}).Where(&model.Post{BoardID: boardId}).Count(&count).Error; err != nil {
+		return 0
+	}
+	return count
 }
 
 func getBoardByID(db *gorm.DB, boardId string) (*model.Board, error) {

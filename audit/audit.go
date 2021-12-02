@@ -39,7 +39,7 @@ func (a *Auditor) Log(userId, action, errorString, message string) {
 	auditLog := Audit{
 		ID:          id.String(),
 		UserID:      userId,
-		DateTime:    time.Now(),
+		DateTime:    time.Now().UTC(),
 		Action:      action,
 		ErrorString: errorString,
 		Message:     message,

@@ -31,6 +31,37 @@ func GetUsers(db *gorm.DB, auditor *audit.Auditor, w http.ResponseWriter, r *htt
 	RespondJSON(w, http.StatusOK, users)
 }
 
+func GetPublicUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["userId"]
+
+	retUser, err := publicUser(db, id)
+	if err != nil {
+		RespondError(w, http.StatusNotFound, "user not found")
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, retUser)
+}
+
+func GetPublicUserByUsername(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	username := vars["username"]
+
+	user, err := getUserByUsername(db, username)
+	if err != nil {
+		RespondError(w, http.StatusNotFound, "user not found")
+	}
+
+	retUser, err := publicUser(db, user.ID)
+	if err != nil {
+		RespondError(w, http.StatusNotFound, "user not found")
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, retUser)
+}
+
 func GetUserById(db *gorm.DB, auditor *audit.Auditor, w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userCtx := ctx.Value("user")
@@ -203,7 +234,7 @@ func UserRegister(db *gorm.DB, auditor *audit.Auditor, w http.ResponseWriter, r 
 		AvatarURL:  "", // will add default later
 		Role:       "user",
 		Active:     true,
-		CreateDate: time.Now(),
+		CreateDate: time.Now().UTC().Format(time.RFC3339),
 	}
 
 	if err := db.Save(&user).Error; err != nil {
@@ -248,6 +279,21 @@ func BanUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	RespondJSON(w, http.StatusOK, user)
+}
+
+func CheckRole(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userCtx := ctx.Value("user")
+
+	reqId := userCtx.(*jwt.Token).Claims.(jwt.MapClaims)["id"]
+
+	userRole, err := getUserRoleById(db, fmt.Sprintf("%v", reqId))
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "an unknown error has occurred")
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, map[string]string{"role": userRole})
 }
 
 func publicUser(db *gorm.DB, userId string) (*model.PublicUser, error) {

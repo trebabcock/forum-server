@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"forum-server/app/model"
 	"net/http"
+	"time"
 
 	"github.com/form3tech-oss/jwt-go"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
 )
@@ -76,6 +78,46 @@ func UpdatePost(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	RespondJSON(w, http.StatusOK, post)
+}
+
+func AddPost(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userCtx := ctx.Value("user")
+
+	reqId := userCtx.(*jwt.Token).Claims.(jwt.MapClaims)["id"]
+
+	newPost := model.NewPost{}
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&newPost); err != nil {
+		RespondError(w, http.StatusBadRequest, "an unknown error has occurred")
+		return
+	}
+	defer r.Body.Close()
+
+	vars := mux.Vars(r)
+	boardId := vars["boardId"]
+
+	postId, err := uuid.NewUUID()
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "an unknown error has occurred")
+		return
+	}
+
+	post := model.Post{
+		ID:         postId.String(),
+		AuthorID:   fmt.Sprintf("%v", reqId),
+		BoardID:    boardId,
+		Title:      newPost.Title,
+		Content:    newPost.Content,
+		CreateDate: time.Now().UTC().Format(time.RFC3339),
+	}
+
+	if err = db.Save(&post).Error; err != nil {
+		RespondError(w, http.StatusInternalServerError, "an unknown error has occurred")
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, map[string]string{"id": post.ID})
 }
 
 func DeletePost(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
