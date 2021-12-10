@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"forum-server/app/model"
 	"net/http"
+	"time"
 
 	"github.com/form3tech-oss/jwt-go"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
 )
@@ -42,6 +44,43 @@ func GetCommentsFromPost(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	RespondJSON(w, http.StatusOK, comments)
+}
+
+func AddComment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userCtx := ctx.Value("user")
+
+	reqId := userCtx.(*jwt.Token).Claims.(jwt.MapClaims)["id"]
+
+	newComment := model.NewComment{}
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&newComment); err != nil {
+		RespondError(w, http.StatusBadRequest, "an unknown error has occurred")
+		return
+	}
+	defer r.Body.Close()
+
+	commentId, err := uuid.NewUUID()
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "an unknown error has occurred")
+		return
+	}
+
+	comment := model.Comment{
+		ID:         commentId.String(),
+		AuthorID:   fmt.Sprintf("%v", reqId),
+		PostID:     newComment.PostID,
+		ParentID:   "",
+		Content:    newComment.Content,
+		CreateDate: time.Now().UTC().Format(time.RFC3339),
+	}
+
+	if err = db.Save(&comment).Error; err != nil {
+		RespondError(w, http.StatusInternalServerError, "an unknown error has occurred")
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, comment)
 }
 
 func UpdateComment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {

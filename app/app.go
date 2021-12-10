@@ -16,7 +16,6 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	_ "github.com/joho/godotenv/autoload"
-	"github.com/rs/cors"
 	"github.com/urfave/negroni"
 	"gorm.io/gorm"
 )
@@ -28,7 +27,6 @@ type App struct {
 	Negroni     *negroni.Negroni
 	Middleware  *jwtmiddleware.JWTMiddleware
 	DB          *gorm.DB
-	CORS        *cors.Cors
 	Auditor     *audit.Auditor
 }
 
@@ -38,45 +36,12 @@ func (a *App) Init(auditor *audit.Auditor) {
 	a.Router = mux.NewRouter()
 	a.AuthRouter = mux.NewRouter()
 
-	/*a.Router.Methods("OPTIONS").HandlerFunc(
-	func(w http.ResponseWriter, r *http.Request) {
-		headers := w.Header()
-		headers.Add("Access-Control-Allow-Origin", "*")
-		headers.Add("Vary", "Origin")
-		headers.Add("Vary", "Access-Control-Request-Method")
-		headers.Add("Vary", "Access-Control-Request-Headers")
-		headers.Add("Access-Control-Allow-Headers", "Content-Type, Origin, Accept, token")
-		headers.Add("Access-Control-Allow-Methods", "GET, POST,OPTIONS")
-	})*/
-
-	a.CORS = cors.New(cors.Options{
-		AllowedOrigins: []string{"*"}, //viper.GetString("ORIGIN_ALLOWED")
-		//AllowedHeaders:   []string{"Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token", "Authorization", "X-Auth-Key", "X-Auth-Secret"},
-		AllowedHeaders: []string{"Content-Type"},
-		AllowedMethods: []string{"GET", "PATCH", "POST", "PUT", "OPTIONS", "DELETE"},
-		Debug:          true,
-		//AllowCredentials:   true,
-		OptionsPassthrough: true,
-	})
-
-	a.CORS.Handler(corsMiddle())
-
 	a.setMiddleware()
 	a.setRoutes()
 
 	a.AuthNegroni = negroni.New(negroni.HandlerFunc(a.Middleware.HandlerWithNext), negroni.Wrap(a.AuthRouter))
 	a.Router.PathPrefix("/api").Handler(a.AuthNegroni)
 
-}
-
-func corsMiddle() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
-		if request.Method == "OPTIONS" {
-			w.Header().Add("Access-Control-Allow-Origin", "http://localhost:8080")
-			w.Header().Add("Access-Control-Allow-Header", "*")
-			w.WriteHeader(http.StatusOK)
-		}
-	})
 }
 
 func (a *App) setMiddleware() {
@@ -114,7 +79,7 @@ func (a *App) setRoutes() {
 	a.put("/api/boards/{boardId}", a.updateBoard)
 	a.delete("/api/boards/{boardId}", a.deleteBoard)
 	a.post("/api/boards/{boardId}/newPost", a.addPost)
-	a.post("/api/boards/{postId}/addComment", a.addComment)
+	a.post("/api/post/addComment", a.addComment)
 	a.put("/api/posts/{postId}", a.updatePost)
 	a.put("/api/posts/comments/{commentId}", a.updateComment)
 	a.delete("/api/posts/{postId}", a.deletePost)
@@ -222,7 +187,7 @@ func (a *App) getPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) getCommentsFromPost(w http.ResponseWriter, r *http.Request) {
-
+	handler.GetCommentsFromPost(a.DB, w, r)
 }
 
 func (a *App) addBoard(w http.ResponseWriter, r *http.Request) {
@@ -234,7 +199,7 @@ func (a *App) addPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) addComment(w http.ResponseWriter, r *http.Request) {
-
+	handler.AddComment(a.DB, w, r)
 }
 
 func (a *App) updatePost(w http.ResponseWriter, r *http.Request) {
