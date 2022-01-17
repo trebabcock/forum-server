@@ -7,6 +7,7 @@ forum-server
 *.dll
 *.so
 *.dylib
+*.crt
 
 # Test binary, built with `go test -c`
 *.test

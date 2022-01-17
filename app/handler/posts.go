@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"forum-server/app/model"
+	"log"
 	"net/http"
 	"time"
 
@@ -150,6 +151,25 @@ func DeletePost(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	RespondJSON(w, http.StatusNoContent, nil)
+}
+
+func GetPostAuthor(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	postId := vars["postId"]
+	post, err := getPostById(db, postId)
+	if err != nil {
+		RespondError(w, http.StatusNotFound, "post not found")
+		log.Fatal(err)
+		return
+	}
+
+	author, err := publicUser(db, post.AuthorID)
+	if err != nil {
+		log.Fatal(err)
+		RespondError(w, http.StatusNotFound, "user not found")
+	}
+
+	RespondJSON(w, http.StatusOK, author)
 }
 
 func getPostById(db *gorm.DB, postId string) (*model.Post, error) {
