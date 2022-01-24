@@ -26,8 +26,15 @@ func GetComment(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 
 func GetCommentsFromUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	userId := vars["userId"]
-	comments, err := getCommentsFromUser(db, userId)
+	username := vars["username"]
+
+	user, err := getUserByUsername(db, username)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "user not found")
+		return
+	}
+
+	comments, err := getCommentsFromUser(db, user.ID)
 	if err != nil {
 		RespondError(w, http.StatusNotFound, "comments not found")
 		return

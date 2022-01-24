@@ -88,6 +88,9 @@ func (a *App) setRoutes() {
 	a.getNoAuth("/api/user/fromPost/{postId}", a.getPostAuthor)
 	a.getNoAuth("/api/post/{postId}/getLastComment", a.getLastCommentFromPost)
 	a.post("/api/user/{userId}/avatar", a.uploadAvatar)
+	a.getNoAuth("/api/user/{username}/posts", a.getPostsFromUser)
+	a.getNoAuth("/api/user/{username}/comments", a.getCommentsFromUser)
+	a.getNoAuth("/api/board/fromPost/{postId}", a.getBoardFromPost)
 }
 
 func (a *App) getNoAuth(path string, f func(w http.ResponseWriter, r *http.Request)) {
@@ -198,6 +201,10 @@ func (a *App) getCommentsFromPost(w http.ResponseWriter, r *http.Request) {
 	handler.GetCommentsFromPost(a.DB, w, r)
 }
 
+func (a *App) getCommentsFromUser(w http.ResponseWriter, r *http.Request) {
+	handler.GetCommentsFromUser(a.DB, w, r)
+}
+
 func (a *App) getLastCommentFromPost(w http.ResponseWriter, r *http.Request) {
 	handler.GetLastCommentFromPost(a.DB, w, r)
 }
@@ -218,20 +225,28 @@ func (a *App) uploadAvatar(w http.ResponseWriter, r *http.Request) {
 	handler.UploadAvatar(a.DB, w, r)
 }
 
-func (a *App) updatePost(w http.ResponseWriter, r *http.Request) {
+func (a *App) getPostsFromUser(w http.ResponseWriter, r *http.Request) {
+	handler.GetPostsFromUser(a.DB, w, r)
+}
 
+func (a *App) updatePost(w http.ResponseWriter, r *http.Request) {
+	handler.UpdatePost(a.DB, w, r)
 }
 
 func (a *App) updateComment(w http.ResponseWriter, r *http.Request) {
-
+	handler.UpdateComment(a.DB, w, r)
 }
 
 func (a *App) deletePost(w http.ResponseWriter, r *http.Request) {
-
+	handler.DeletePost(a.DB, w, r)
 }
 
 func (a *App) deleteComment(w http.ResponseWriter, r *http.Request) {
+	handler.DeleteComment(a.DB, w, r)
+}
 
+func (a *App) getBoardFromPost(w http.ResponseWriter, r *http.Request) {
+	handler.GetBoardFromPost(a.DB, w, r)
 }
 
 func (a *App) Run(host string) {

@@ -27,8 +27,15 @@ func GetPost(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 
 func GetPostsFromUser(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	userId := vars["userId"]
-	posts, err := getPostsFromUser(db, userId)
+	username := vars["username"]
+
+	user, err := getUserByUsername(db, username)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "user not found")
+		return
+	}
+
+	posts, err := getPostsFromUser(db, user.ID)
 	if err != nil {
 		RespondError(w, http.StatusNotFound, "posts not found")
 		return

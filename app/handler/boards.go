@@ -166,6 +166,25 @@ func GetLastPostTimeAndAuthor(db *gorm.DB, w http.ResponseWriter, r *http.Reques
 	RespondJSON(w, http.StatusOK, map[string]interface{}{"author": user.Username, "date_time": post.CreateDate, "count": count})
 }
 
+func GetBoardFromPost(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	postId := vars["postId"]
+
+	post, err := getPostById(db, postId)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "post not found")
+		return
+	}
+
+	board, err := getBoardByID(db, post.BoardID)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "board not found")
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, board)
+}
+
 func getLastPost(db *gorm.DB, boardId string) (*model.Post, error) {
 	post := model.Post{}
 	if err := db.Where(&model.Post{BoardID: boardId}).Order("create_date desc").First(&post).Error; err != nil {
